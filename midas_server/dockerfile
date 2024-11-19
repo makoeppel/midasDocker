@@ -1,0 +1,47 @@
+FROM ubuntu:20.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV MIDASSYS=/opt/midas
+ENV MIDAS_EXPTAB=/opt/midas/online/exptab
+ENV MIDAS_EXPT_NAME=e777
+ENV PATH=$PATH:$MIDASSYS/bin
+
+# Install necessary packages
+RUN apt-get update && \
+    apt-get -y install gcc g++ cmake git python3-all libssl-dev libz-dev libcurl4-gnutls-dev \
+    sqlite3 libsqlite3-dev libboost-all-dev linux-headers-generic && \
+    apt-get clean
+
+# Clone and build MIDAS
+RUN git clone https://marius_koeppel@bitbucket.org/tmidas/midas.git /opt/midas && \
+    cd /opt/midas && \
+    git submodule update --init --recursive && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make install
+
+# Setup ODB
+RUN cd /opt/midas && \
+    mkdir online && \
+    cd online && \
+    echo "#Exptname    Expt Directory             Username" >> ${MIDAS_EXPTAB} && \
+    echo "e777 $MIDASSYS/online/ johnfoo" >> ${MIDAS_EXPTAB} && \
+    timeout --preserve-status 2 mhttpd && \
+    timeout --preserve-status 2 mserver && \
+    rm .SHM_HOST.TXT && \
+    
+    odbedit -c 'set "WebServer/insecure port passwords" "n"' && \
+    odbedit -c 'set "WebServer/insecure port host list" "n"' && \
+    odbedit -c 'set "WebServer/Enable insecure port" "y"' && \
+    odbedit -c 'set "Experiment/Security/Enable non-localhost RPC" "y"' && \
+    odbedit -c 'set "Experiment/Security/Disable RPC hosts check" "y"' && \
+    odbedit -c 'set "WebServer/Enable IPv6" "n"'
+
+# Expose necessary ports
+EXPOSE 8080
+EXPOSE 8081
+
+# Entry point to start mhttpd and mserver
+CMD ["/bin/bash", "-c", "echo \"midasserver\" > /opt/midas/online/.SHM_HOST.TXT && mhttpd"]

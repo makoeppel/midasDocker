@@ -1,0 +1,20 @@
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get -y install gcc g++ cmake git python3-all libssl-dev libz-dev libcurl4-gnutls-dev \
+    sqlite3 libsqlite3-dev libboost-all-dev linux-headers-generic && \
+    apt-get clean
+
+RUN git clone https://marius_koeppel@bitbucket.org/tmidas/midas.git /opt/midas && \
+    cd /opt/midas && \
+    git submodule update --init --recursive && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make install && \
+    cd .. && \
+    export MIDASSYS=$(pwd)
+
+CMD ["/bin/bash", "-c", "cd /opt/midas && ./test_fe"]

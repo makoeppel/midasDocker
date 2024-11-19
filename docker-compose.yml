@@ -1,0 +1,25 @@
+version: "3.9"
+services:
+  midas_server:
+    hostname: midasserver
+    build:
+      context: ./midas_server
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    networks:
+      - midas_network
+    container_name: midas_server
+
+  # midas_client:
+  #   build:
+  #     context: ./midas_client
+  #   depends_on:
+  #     - midas_server
+  #   networks:
+  #     - midas_network
+  #   container_name: midas_client
+
+networks:
+  midas_network:
+    driver: bridge
